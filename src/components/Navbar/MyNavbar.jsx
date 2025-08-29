@@ -1,24 +1,37 @@
 import { useContext } from "react";
-import { Button, Navbar, NavbarBrand, NavbarCollapse, NavbarLink, NavbarToggle } from "flowbite-react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Button,
+  Navbar,
+  NavbarBrand,
+  NavbarCollapse,
+  NavbarLink,
+  NavbarToggle,
+} from "flowbite-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
 
 export function MyNavbar() {
   const { Atoken, saveToken } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const handleLogout = () => {
-    // مسح التوكن من الـ state و localStorage
     saveToken(null);
     localStorage.removeItem("userToken");
-    // إعادة التوجيه للصفحة Login
     navigate("/login");
   };
+
+  // helper لتحديد إذا كان الرابط Active
+  const isActive = (to) => pathname === to || pathname.startsWith(`${to}/`);
 
   return (
     <Navbar fluid rounded className="bg-[#167D56] text-white">
       <NavbarBrand href="">
-        <img src="/logo.png" className="mr-3 h-8 sm:h-10" alt="Shifa Hospital Logo" />
+        <img
+          src="/logo.png"
+          className="mr-3 h-8 sm:h-10"
+          alt="Shifa Hospital Logo"
+        />
         <span className="self-center whitespace-nowrap text-xl font-semibold text-white">
           Shifa Hospital
         </span>
@@ -37,12 +50,25 @@ export function MyNavbar() {
 
       {/* اللينكات + الأيقونات */}
       <NavbarCollapse>
-        <Link to="/home">
-          <NavbarLink className="!text-white hover:!text-[#A7D7C5]"><i className="fa fa-home fa-lg"></i></NavbarLink>
-        </Link>
-        <Link to="/profile">
-          <NavbarLink className="!text-white hover:!text-[#A7D7C5]"><i className="fa-solid fa-user fa-lg"></i></NavbarLink>
-        </Link>
+        <NavbarLink
+          as={Link}
+          to="/home"
+          className={`!text-white hover:!text-[#A7D7C5] ${
+            isActive("/home") ? "!text-[#A7D7C5]" : ""
+          }`}
+        >
+          <i className="fa fa-home fa-lg"></i>
+        </NavbarLink>
+
+        <NavbarLink
+          as={Link}
+          to="/profile"
+          className={`!text-white hover:!text-[#A7D7C5] ${
+            isActive("/profile") ? "!text-[#A7D7C5]" : ""
+          }`}
+        >
+          <i className="fa-solid fa-user fa-lg"></i>
+        </NavbarLink>
       </NavbarCollapse>
     </Navbar>
   );

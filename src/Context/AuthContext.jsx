@@ -5,16 +5,16 @@ export const AuthContext = createContext();
 
 // 2️⃣ Provider
 export default function AuthContextProvider({ children }) {
-  const [Atoken, setAToken] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("userToken") || null);
 
   // دالة لحفظ التوكن
-  function saveToken(userToken) {
-    setAToken(userToken);
-  }
+  const saveToken = (userToken) => {
+    setToken(userToken);
+    localStorage.setItem("userToken", userToken);
+  };
 
   return (
-    // 3️⃣ تمرير القيم للمكونات الأبناء
-    <AuthContext.Provider value={{ Atoken, saveToken }}>
+    <AuthContext.Provider value={{ token, saveToken }}>
       {children}
     </AuthContext.Provider>
   );
