@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import PostCard from "../Post/Post";
+import PostsList from "../PostsList/PostsList";
+import CreatePost from './../CreatePost/CreatePost';
 
 
 export default function Home() {
@@ -10,15 +12,8 @@ export default function Home() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const token = localStorage.getItem("userToken"); // التوكن من اللوكال ستورج
-        const response = await axios.get(
-          "https://linked-posts.routemisr.com/posts?limit=1000",
-          {
-            headers: {
-              token: ` ${token}`, // الزم التوكن
-            },
-          }
-        );
+        const token = localStorage.getItem("userToken");
+        const response = await axios.get("https://linked-posts.routemisr.com/posts?limit=1000", { headers: { token } });
         setPosts(response.data.posts);
       } catch (error) {
         console.error("Error fetching posts:", error);
@@ -26,7 +21,6 @@ export default function Home() {
         setLoading(false);
       }
     };
-
     fetchPosts();
   }, []);
 
@@ -34,11 +28,8 @@ export default function Home() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-6">
-      {posts.length > 0 ? (
-        posts.map((post) => <PostCard key={post._id} post={post} />)
-      ) : (
-        <p className="text-center text-slate-500">No posts available</p>
-      )}
+      <CreatePost />
+      {posts.length > 0 ? posts.map((post) => <PostCard key={post._id} post={post} />) : <p className="text-center text-slate-500">No posts available</p>}
     </div>
   );
 }

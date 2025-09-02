@@ -10,8 +10,6 @@ import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import SinglePost from './components/SinglePost/SinglePost';
 
 const router = createBrowserRouter([
-
-  
   {
     path: "/login",
     element: <Login />
@@ -22,20 +20,27 @@ const router = createBrowserRouter([
   },
   {
     path: "/",
-    element: <ProtectedRoute><Layout /></ProtectedRoute>,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
-       {
-        path: "home",
-        element: <ProtectedRoute> <Home /> </ProtectedRoute>
+      {
+        index: true, // default route لما يدخل على "/"
+        element: <Home />
       },
       {
-    path: "/post/:id",
-    element: <SinglePost />,
-  },
-
-     {
+        path: "home",
+        element: <Home />
+      },
+      {
+        path: "post/:id", // ✅ من غير "/"
+        element: <SinglePost />,
+      },
+      {
         path: "profile",
-        element: <ProtectedRoute> <Profile /> </ProtectedRoute>
+        element: <Profile />
       },
     ],
   },
@@ -43,9 +48,8 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-
-<AuthContextProvider>
-  <RouterProvider router={router} />
-</AuthContextProvider>
+    <AuthContextProvider>
+      <RouterProvider router={router} />
+    </AuthContextProvider>
   );
 }
