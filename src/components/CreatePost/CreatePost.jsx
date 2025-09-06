@@ -3,57 +3,94 @@ import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCamera, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
 
 const DEFAULT_IMAGE = "/istockphoto-1337144146-612x612.jpg";
 
-export default function CreatePost() {
-  const [body, setBody] = useState("");
-  const [image, setImage] = useState(null);
+export default function CreatePost({ editMode = false, post = {}, onClose }) {
+  const [body, setBody] = useState(editMode ? post.body : "");
+  const [image, setImage] = useState(editMode ? post.image : null);
   const [loading, setLoading] = useState(false);
+
   const queryClient = useQueryClient();
   const token = localStorage.getItem("userToken");
 
-  const handleCreatePost = async (e) => {
+  // تغيير الصورة
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setImage(file);
+  };
+
+  // إلغاء الصورة
+  const handleCancelImage = () => setImage(null);
+
+  // إنشاء أو تعديل البوست
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!body.trim() && !image) return;
+    if (!body.trim() && !image) {
+      toast.error("⚠️ لازم تكتب نص أو ترفع صورة!");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("body", body);
-    if (image) formData.append("image", image); // تأكد اسم الحقل "image" صحيح حسب السيرفر
+    if (image instanceof File) formData.append("image", image);
+    else if (!image) formData.append("image", "");
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const { data } = await axios.post(
-        "https://linked-posts.routemisr.com/posts",
-        formData,
-        { headers: { token, "Content-Type": "multipart/form-data" } }
-      );
+      if (editMode) {
+        await axios.put(
+          `https://linked-posts.routemisr.com/posts/${post._id}`,
+          formData,
+          { headers: { token } }
+        );
+        toast.success("✅ تم تعديل البوست!");
+        queryClient.invalidateQueries({ queryKey: ["posts_update"] });
+      } else {
+        const { data } = await axios.post(
+          "https://linked-posts.routemisr.com/posts",
+          formData,
+          { headers: { token, "Content-Type": "multipart/form-data" } }
+        );
 
-      // استخدام البوست اللي بيرجع من السيرفر مباشرة
-      const newPost = data.post;
+        // إضافة البوست الجديد للـ cache
+        queryClient.setQueryData(["posts", "all"], (oldPosts) => {
+          if (!oldPosts) return { data: [data.post] };
+          return { ...oldPosts, data: [data.post, ...oldPosts.data] };
+        });
 
-      // إضافة البوست مباشرة للـ cache
-      queryClient.setQueryData(["posts", "all"], (oldPosts) => {
-        if (!oldPosts) return { data: [newPost] };
-        return {
-          ...oldPosts,
-          data: [newPost, ...oldPosts.data],
-        };
-      });
+        toast.success("✅ تم إنشاء البوست!");
+      }
 
       setBody("");
       setImage(null);
+      if (onClose) onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error("❌ حصل خطأ أثناء الحفظ");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      toast.success("✅ Post created successfully!", {
-        position: "top-right",
-        autoClose: 3000,
+  // حذف البوست
+  const handleDelete = async () => {
+    if (!post?._id) return;
+    if (!window.confirm("هل متأكد انك عايز تحذف البوست؟")) return;
+
+    setLoading(true);
+    try {
+      await axios.delete(`https://linked-posts.routemisr.com/posts/${post._id}`, {
+        headers: { token },
       });
-    } catch (err) {
-      console.error(err);
-      toast.error("❌ Failed to create post", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.success("🗑️ تم حذف البوست");
+      queryClient.invalidateQueries({ queryKey: ["posts_delete"] });
+      if (onClose) onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error("❌ فشل حذف البوست");
     } finally {
       setLoading(false);
     }
@@ -63,13 +100,13 @@ export default function CreatePost() {
     <>
       <ToastContainer />
       <form
-        onSubmit={handleCreatePost}
+        onSubmit={handleSubmit}
         className="bg-white shadow-md rounded-2xl p-4 mb-6 border border-[#167D56]/30"
       >
         <div className="flex items-start gap-3">
           <img
             src={DEFAULT_IMAGE}
-            alt="me"
+            alt="user"
             className="w-12 h-12 rounded-full object-cover border border-[#167D56]/40"
           />
           <div className="flex-1">
@@ -79,58 +116,56 @@ export default function CreatePost() {
               onChange={(e) => setBody(e.target.value)}
               className="w-full border border-[#167D56]/30 rounded-xl px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-1 focus:ring-[#167D56]"
             />
+
+            {/* عرض صورة البوست */}
             {image && (
-              <div className="mb-3">
+              <div className="relative mb-3">
                 <img
-                  src={URL.createObjectURL(image)}
+                  src={image instanceof File ? URL.createObjectURL(image) : image}
                   alt="preview"
                   className="w-full rounded-xl border border-[#167D56]/30"
                 />
+                <button
+                  type="button"
+                  onClick={handleCancelImage}
+                  className="absolute top-2 right-2 bg-white rounded-full p-2 shadow hover:bg-gray-100"
+                >
+                  <FontAwesomeIcon icon={faTimes} className="text-red-600" />
+                </button>
               </div>
             )}
+
             <div className="flex items-center justify-between">
-              <label className="cursor-pointer text-sm text-[#167D56] font-medium hover:underline">
-                📷 Add Photo
+              {/* زر إضافة صورة */}
+              <label className="cursor-pointer text-sm text-[#167D56] font-medium hover:underline flex items-center gap-1">
+                <FontAwesomeIcon icon={faCamera} /> Add Photo
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setImage(e.target.files[0])}
+                  onChange={handleImageChange}
                   className="hidden"
                 />
               </label>
-              <button
-                type="submit"
-                disabled={loading || (!body.trim() && !image)}
-                className="bg-[#167D56] text-white px-4 py-2 rounded-xl text-sm hover:bg-green-700 disabled:opacity-60 flex items-center gap-2"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="animate-spin h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-                      ></path>
-                    </svg>
-                    Posting...
-                  </span>
-                ) : (
-                  "Post"
+
+              <div className="flex items-center gap-2">
+                {editMode && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="bg-red-500 text-white px-3 py-1 rounded-xl hover:bg-red-600 disabled:opacity-60 flex items-center gap-1"
+                  >
+                    <FontAwesomeIcon icon={faTrash} /> Delete
+                  </button>
                 )}
-              </button>
+                <button
+                  type="submit"
+                  disabled={loading || (!body.trim() && !image)}
+                  className="bg-[#167D56] text-white px-4 py-2 rounded-xl text-sm hover:bg-green-700 disabled:opacity-60 flex items-center gap-1"
+                >
+                  {loading ? "Posting..." : editMode ? "Update" : "Post"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

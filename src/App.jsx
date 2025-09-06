@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Login from './components/Login/Login';
@@ -8,6 +8,7 @@ import AuthContextProvider from './Context/AuthContext';
 import Profile from './components/Profile/Profile';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import SinglePost from './components/SinglePost/SinglePost';
+import { Toaster } from "react-hot-toast";
 
 const router = createBrowserRouter([
   {
@@ -35,7 +36,7 @@ const router = createBrowserRouter([
         element: <Home />
       },
       {
-        path: "post/:id", // ✅ من غير "/"
+        path: "post/:id",
         element: <SinglePost />,
       },
       {
@@ -49,6 +50,7 @@ const router = createBrowserRouter([
 export default function App() {
   return (
     <AuthContextProvider>
+      <Toaster position="top-right" reverseOrder={false} />
       <RouterProvider router={router} />
     </AuthContextProvider>
   );
