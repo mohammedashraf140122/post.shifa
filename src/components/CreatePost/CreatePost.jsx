@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../../api/axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -29,7 +29,7 @@ export default function CreatePost({ editMode = false, post = {}, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!body.trim() && !image) {
-      toast.error("⚠️ لازم تكتب نص أو ترفع صورة!");
+      toast.error("⚠️ Please write text or add an image");
       return;
     }
 
@@ -41,27 +41,30 @@ export default function CreatePost({ editMode = false, post = {}, onClose }) {
     setLoading(true);
     try {
       if (editMode) {
-        await axios.put(
+        await api.put(
           `https://linked-posts.routemisr.com/posts/${post._id}`,
           formData,
           { headers: { token } }
         );
-        toast.success("✅ تم تعديل البوست!");
-        queryClient.invalidateQueries({ queryKey: ["posts_update"] });
+        toast.success("✅ Post updated");
+        queryClient.invalidateQueries({ queryKey: ["posts"] });
+        queryClient.invalidateQueries({ queryKey: ["posts", post._id] });
+        queryClient.invalidateQueries({ queryKey: ["userPosts"] });
       } else {
-        const { data } = await axios.post(
+        const { data } = await api.post(
           "https://linked-posts.routemisr.com/posts",
           formData,
           { headers: { token, "Content-Type": "multipart/form-data" } }
         );
 
-        // إضافة البوست الجديد للـ cache
-        queryClient.setQueryData(["posts", "all"], (oldPosts) => {
-          if (!oldPosts) return { data: [data.post] };
-          return { ...oldPosts, data: [data.post, ...oldPosts.data] };
+        // Add the new post to cache
+        queryClient.setQueryData(["posts"], (oldPosts) => {
+          if (!oldPosts) return [data.post];
+          return [data.post, ...oldPosts];
         });
+        queryClient.invalidateQueries({ queryKey: ["userPosts"] });
 
-        toast.success("✅ تم إنشاء البوست!");
+        toast.success("✅ Post created");
       }
 
       setBody("");
@@ -69,7 +72,7 @@ export default function CreatePost({ editMode = false, post = {}, onClose }) {
       if (onClose) onClose();
     } catch (error) {
       console.error(error);
-      toast.error("❌ حصل خطأ أثناء الحفظ");
+      toast.error("❌ Something went wrong while saving");
     } finally {
       setLoading(false);
     }
@@ -78,19 +81,20 @@ export default function CreatePost({ editMode = false, post = {}, onClose }) {
   // حذف البوست
   const handleDelete = async () => {
     if (!post?._id) return;
-    if (!window.confirm("هل متأكد انك عايز تحذف البوست؟")) return;
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
 
     setLoading(true);
     try {
-      await axios.delete(`https://linked-posts.routemisr.com/posts/${post._id}`, {
+      await api.delete(`https://linked-posts.routemisr.com/posts/${post._id}`, {
         headers: { token },
       });
-      toast.success("🗑️ تم حذف البوست");
-      queryClient.invalidateQueries({ queryKey: ["posts_delete"] });
+      toast.success("🗑️ Post deleted");
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
       if (onClose) onClose();
     } catch (error) {
       console.error(error);
-      toast.error("❌ فشل حذف البوست");
+      toast.error("❌ Failed to delete post");
     } finally {
       setLoading(false);
     }

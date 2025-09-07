@@ -22,7 +22,7 @@ export default function PostsTabs({ activeTab, setActiveTab }) {
             : "text-gray-500 hover:text-[#167D56]"
         }`}
       >
-        User Posts
+        User Posts & comments
       </button>
     </div>
   );

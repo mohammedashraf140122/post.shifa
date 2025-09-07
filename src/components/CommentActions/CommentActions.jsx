@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/axios";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
@@ -37,16 +37,13 @@ export default function CommentActions({ comment, postId }) {
     }
 
     try {
-      await axios.put(
+      await api.put(
         `https://linked-posts.routemisr.com/comments/${comment._id}`,
         { content },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { token, Authorization: `Bearer ${token}` } }
       );
-      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["posts", postId] });
       toast.success("✏️ Comment updated");
       setEditing(false);
     } catch (err) {
@@ -67,18 +64,15 @@ export default function CommentActions({ comment, postId }) {
       return;
     }
 
-    if (!window.confirm("هل متأكد انك عايز تحذف الكومنت؟")) return;
+    // حذف مباشر بدون نافذة تأكيد
 
     try {
-      await axios.delete(
+      await api.delete(
         `https://linked-posts.routemisr.com/comments/${comment._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { token, Authorization: `Bearer ${token}` } }
       );
-      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["posts", postId] });
       toast.success("🗑️ Comment deleted");
     } catch (err) {
       console.error("Delete failed:", err.response?.data || err.message || err);
@@ -100,13 +94,19 @@ export default function CommentActions({ comment, postId }) {
       {open && (
         <div className="absolute right-0 mt-2 w-28 bg-white border rounded-lg shadow-lg z-10">
           <button
-            onClick={() => setEditing(true)}
+            onClick={() => {
+              setEditing(true);
+              setOpen(false); // close menu after selection
+            }}
             className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
           >
             ✏️ Edit
           </button>
           <button
-            onClick={handleDelete}
+            onClick={() => {
+              setOpen(false); // close menu after selection
+              handleDelete();
+            }}
             className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
           >
             🗑️ Delete

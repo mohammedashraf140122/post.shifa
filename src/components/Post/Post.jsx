@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api from "../../api/axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -51,15 +51,17 @@ const PostCard = ({ post, showAllComments = false }) => {
     setLoading(true);
 
     try {
-      await axios.post(
+      await api.post(
         "https://linked-posts.routemisr.com/comments",
         { content: newComment, post: post._id },
         { headers: { token, "Content-Type": "application/json" } }
       );
 
       setNewComment("");
-      queryClient.invalidateQueries({ queryKey: ["comments", post._id] });
-      toast.success("💬 Comment added!");
+      // بعد إضافة كومنت، حدّث البوستات والبوست الحالي (لو مستخدم في صفحة سينجل)
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["posts", post._id] });
+      toast.success("💬 Comment added");
     } catch {
       toast.error("❌ Failed to add comment");
     } finally {
@@ -70,14 +72,14 @@ const PostCard = ({ post, showAllComments = false }) => {
   // ✅ حذف البوست
   const handleDelete = async () => {
     try {
-      await axios.delete(`https://linked-posts.routemisr.com/posts/${post._id}`, {
+      await api.delete(`https://linked-posts.routemisr.com/posts/${post._id}`, {
         headers: { token },
       });
 
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["userPosts", currentUserId] });
 
-      toast.success("🗑️ Post deleted!");
+      toast.success("🗑️ Post deleted");
     } catch {
       toast.error("❌ Failed to delete post");
     } finally {
